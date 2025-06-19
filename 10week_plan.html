@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FitForge 10-Week Program</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .week-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    .day-button {
+      margin: 0.5rem;
+      padding: 0.7rem 1.2rem;
+      border-radius: 10px;
+      border: none;
+      background-color: #00ffcc;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .day-button:hover {
+      background-color: #00c9aa;
+    }
+    .workout-display {
+      margin-top: 2rem;
+    }
+    .exercise {
+      font-size: 1.4rem;
+      margin: 0.3rem 0;
+    }
+    #timer {
+      font-size: 2rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Select Your Workout Day 💪</h2>
+    <div class="week-container" id="days-grid"></div>
+
+    <div class="workout-display">
+      <h3 id="day-title">Workout Plan</h3>
+      <div id="exercises"></div>
+      <img id="exercise-img" src="" style="width:100%; max-width:500px; margin:1rem auto; display:block;" />
+      <div id="timer">00:00</div>
+      <div>
+        <button onclick="startWorkout()">▶️ Start</button>
+        <button onclick="pauseWorkout()">⏸️ Pause</button>
+        <button onclick="resetWorkout()">🔄 Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const allWorkouts = [];
+    const exercisePool = ["Jumping Jacks", "Push-Ups", "Lunges", "Plank", "Squats", "Mountain Climbers", "High Knees"];
+    const timerDisplay = document.getElementById("timer");
+    const exerciseImg = document.getElementById("exercise-img");
+
+    for (let i = 0; i < 50; i++) {
+      const plan = [];
+      const intervals = [];
+      for (let j = 0; j < 5; j++) {
+        const move = exercisePool[Math.floor(Math.random() * exercisePool.length)];
+        for (let r = 0; r < 3; r++) {
+          plan.push(move);
+          intervals.push(45);
+          plan.push("Rest");
+          intervals.push(30);
+        }
+      }
+      allWorkouts.push({ plan, intervals });
+    }
+
+    const grid = document.getElementById("days-grid");
+    for (let i = 1; i <= 50; i++) {
+      const btn = document.createElement("button");
+      btn.className = "day-button";
+      btn.textContent = `Day ${i}`;
+      btn.onclick = () => { loadDay(i - 1); localStorage.setItem("lastDayIndex", i - 1); };
+      grid.appendChild(btn);
+    }
+
+    let currentIndex = 0;
+    let currentTime = 0;
+    let timerInterval = null;
+    let workout = [];
+    let intervals = [];
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(currentTime / 60);
+      const secs = currentTime % 60;
+      timerDisplay.textContent = \`\${mins.toString().padStart(2, "0")}:\${secs.toString().padStart(2, "0")}\`;
+    }
+
+    function loadDay(index) {
+      const data = allWorkouts[index];
+      workout = data.plan;
+      intervals = data.intervals;
+      currentIndex = 0;
+      currentTime = 0;
+
+      document.getElementById("day-title").textContent = \`Workout Plan – Day \${index + 1}\`;
+      const list = document.getElementById("exercises");
+      list.innerHTML = "";
+      workout.forEach((move, i) => {
+        const item = document.createElement("div");
+        item.className = "exercise";
+        item.textContent = \`\${i + 1}. \${move} – \${intervals[i]} sec\`;
+        list.appendChild(item);
+      });
+      updateTimerDisplay();
+      updateExerciseImage(workout[0]);
+    }
+
+    function updateExerciseImage(name) {
+      const lower = name.toLowerCase().replace(/ /g, "_");
+      const categories = {
+        "cardio": ["jumping jacks", "mountain climbers", "high knees"],
+        "strength": ["push-ups", "squats", "lunges"],
+        "stretch": ["plank"]
+      };
+      let category = "cardio";
+      for (const [cat, list] of Object.entries(categories)) {
+        if (list.includes(lower)) category = cat;
+      }
+      exerciseImg.src = \`workouts/\${category}/\${lower}.gif\`;
+    }
+
+    function startWorkout() {
+      if (!workout.length) return;
+      if (!timerInterval) {
+        updateExerciseImage(workout[currentIndex]);
+        currentTime = intervals[currentIndex];
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+          currentTime--;
+          updateTimerDisplay();
+          if (currentTime <= 0) {
+            currentIndex++;
+            if (currentIndex >= workout.length) {
+              clearInterval(timerInterval);
+              exerciseImg.src = "";
+              timerDisplay.textContent = "✅ Complete!";
+              return;
+            }
+            updateExerciseImage(workout[currentIndex]);
+            currentTime = intervals[currentIndex];
+          }
+        }, 1000);
+      }
+    }
+
+    function pauseWorkout() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function resetWorkout() {
+      pauseWorkout();
+      currentIndex = 0;
+      currentTime = 0;
+      timerDisplay.textContent = "00:00";
+      exerciseImg.src = "";
+    }
+
+    
+    // Load last visited day or default to day 1
+    const savedDayIndex = parseInt(localStorage.getItem("lastDayIndex") || "0");
+    loadDay(savedDayIndex);
+
+    loadDay(0);
+  </script>
+</body>
+</html>
